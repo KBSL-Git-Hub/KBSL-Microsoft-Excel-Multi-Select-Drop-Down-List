@@ -1,0 +1,62 @@
+Private Sub Worksheet_Change(ByVal SubTarget As Range)          'Worksheet Change event, anything changes at worksheet level.
+    On Error GoTo CatchBlock
+    Dim SubOldValue As String                                  'To store previous selected value in cell which has drop down.
+                                                                'In this case teh cell is J16
+    Dim SubNewValue As String                                  'To store current selected value from drop down
+    Dim YesNoMsg As String                                  'To store user confirmation upon a message box displayed
+    
+    
+    If Sheets("Student Form").Range("A1").Value <> "Clear" Then
+        If Intersect(SubTarget, Range("J16:J16")) Is Nothing Then Exit Sub     'When the cell Subject J16 value is changed
+        If SubTarget.Count > 1 Then Exit Sub
+    
+        Application.EnableEvents = False                        'Disabling the events temporarily so that it won't go for infinite loop
+    
+        SubNewValue = SubTarget.Value                                 'Store value selected from drop down
+        Application.Undo                                        'Undo the slection and let the cell has previous value selected.
+                                                                    'Since the event is at Worksheet level. the code is trying to be generic as much as possible.
+        SubOldValue = SubTarget.Value                                 'Store the previous cell value once undo completed.
+        'MsgBox (NewValue)
+        If SubNewValue <> "Select None" And _
+            SubNewValue <> "" Then                                  'Check if the new value is not empty then proceed further
+            If SubOldValue = "" Or _
+               SubOldValue = "Select None" Then                                'Check if old value is empty, which means nothing was selected before.
+                SubTarget.Value = SubNewValue                         'Once decided that there is a fresh new slection from drop down
+                                                                    'then copy the new slected value to target cell.
+            Else                                                'If the cell already has some previous value then else part will execute.
+                If InStr(SubOldValue, SubNewValue) = 0 Then           'Check if old and new value is same, to avoid value repeatation. If not then
+                    SubTarget.Value = SubOldValue & " " & SubNewValue    'Add the new value selected from drop down to previously selected value
+                                                                    'and assign to cell.
+                Else                                            'If the newly selected value already presented in previous selected list.
+                    YesNoMsg = MsgBox("Do you want to remove " _
+                                            & SubNewValue & _
+                                            " from selected list?" _
+                                            , vbYesNo, "Student Entry Form")          'Ask user for a confirmation for removal
+                    If (YesNoMsg = 6) Then                      'If user says "Yes"
+                    SubTarget.Value = Trim(Replace(Replace(SubTarget.Value, SubNewValue _
+                                                        , "", , , vbBinaryCompare) _
+                                                , "  ", " ", , , vbTextCompare)) 'Replace the extra space which will get added.
+                    Else
+                        SubTarget.Value = SubOldValue                 'If user does not want to make any changes then cell will retain previous value
+                    End If
+                End If
+            End If
+        ElseIf SubOldValue = "" Or _
+                SubOldValue = "Select None" Or _
+                SubNewValue = "Select None" Then
+            If 6 = MsgBox("Do you want to clear the selection?", vbYesNo, "Student Entry Form") Then
+                SubTarget.Value = ""
+            End If
+        End If
+        Sheets("Student Form").Range("A1").Value = ""
+    End If
+    If Application.EnableEvents = False Then
+        Application.EnableEvents = True
+    End If
+    SubTarget.EntireColumn.AutoFit
+CatchBlock:
+    If Application.EnableEvents = False Then
+        Application.EnableEvents = True
+    End If
+    
+End Sub
